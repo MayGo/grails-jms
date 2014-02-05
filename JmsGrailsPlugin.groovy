@@ -91,10 +91,15 @@ class JmsGrailsPlugin {
     }
 
     def doWithApplicationContext = { applicationContext ->
-        listenerConfigs.each { serviceClassName, serviceClassListenerConfigs ->
-            serviceClassListenerConfigs.each {
-                startListenerContainer(it, applicationContext)
-            }
+        if(!jmsConfig.manualStart){
+        	LOG.info "Starting JMS Listeners."
+        	listenerConfigs.each { serviceClassName, serviceClassListenerConfigs ->
+        		serviceClassListenerConfigs.each {
+        			startListenerContainer(it, applicationContext)
+        		}
+        	}
+        }else{
+        	LOG.info "Manual starting mode for JMS Listeners."
         }
         //Fetch and set the asyncReceiverExecutor
         try {
@@ -108,6 +113,18 @@ class JmsGrailsPlugin {
         }
 
     }
+    /**
+     * Use when config.jms.manualStart=true. In bootstrap add JmsGrailsPlugin.startListeners()
+     */
+    static void startListeners(){
+    	LOG.info "Starting JMS listeners manually."
+    	listenerConfigs.each { serviceClassName, serviceClassListenerConfigs ->
+    		serviceClassListenerConfigs.each { listenerConfig->
+    			 Holders.applicationContext.getBean(listenerConfig.listenerContainerBeanName).start()
+    		}
+    	}
+    }
+
     //Send*
     def sendJMSMessage2 = { jmsService, destination, message ->
         jmsService.send(destination, message)
